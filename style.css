@@ -1,0 +1,25 @@
+body {
+	margin: 0;
+	padding: 0;
+	background-color: grey;
+}
+
+#page {
+	margin: 0 auto;
+	width: 480px;
+	background-color: white;
+}
+
+.exchange.input-group > button {
+	width: 50%;
+}
+
+.name {
+	padding-left: 8px;
+	font-size: 18px;
+}
+
+.data {
+	height: 16px;
+	text-align: right;
+}
