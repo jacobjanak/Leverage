@@ -23,3 +23,7 @@ body {
 	height: 16px;
 	text-align: right;
 }
+
+.data > span {
+	min-width: 32px;
+}
