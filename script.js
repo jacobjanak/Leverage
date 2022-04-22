@@ -28,24 +28,53 @@ $(document).ready(() => {
 		update();
 	})
 
-	$('#sell-ethup').on('click', () => {
-		console.log('hi')
+	$('button.sell-ethup').on('click', () => {
+		const amount = parseFloat($('input.sell-ethup').val());
+		if (u == null) return;
+		if (isNaN(amount)) return;
+		if (amount > users[u].ethup) return;
+		$('input.sell-ethup').val('');
+		const ratio = amount / contract.ethup;
+		users[u].eth += (contract.eth - contract.divider) * ratio;
+		contract.eth -= (contract.eth - contract.divider) * ratio;
+		users[u].ethup -= amount;
+		contract.ethup -= amount;
+		update();
 	})
 
 	$('button.buy-ethdown').on('click', () => {
-		const amount = parseInt($('input.buy-ethdown').val());
+		const amount = parseFloat($('input.buy-ethdown').val());
 		if (u == null) return;
 		if (isNaN(amount)) return;
 		if (amount > users[u].eth) return;
 		$('input.buy-ethdown').val('');
+		if (contract.ethdown === 0) {
+			contract.ethdown++;
+			users[u].ethdown++;
+		} else {
+			const ratio = contract.ethdown / contract.divider;
+			contract.ethdown += amount * ratio;
+			users[u].ethdown += amount * ratio;
+		}
 		contract.eth += amount;
 		users[u].eth -= amount;
 		contract.divider += amount;
 		update();
 	})
 
-	$('#sell-ethdown').on('click', () => {
-		console.log('hi')
+	$('button.sell-ethdown').on('click', () => {
+		const amount = parseFloat($('input.sell-ethdown').val());
+		if (u == null) return;
+		if (isNaN(amount)) return;
+		if (amount > users[u].ethdown) return;
+		$('input.sell-ethdown').val('');
+		const ratio = amount / contract.ethdown;
+		users[u].eth += contract.divider * ratio;
+		contract.eth -= contract.divider * ratio;
+		users[u].ethdown -= amount;
+		contract.ethdown -= amount;
+		contract.divider -= contract.divider * ratio;
+		update();
 	})
 
 	const User = (name, eth) => {
@@ -67,6 +96,7 @@ $(document).ready(() => {
 		// progress bar
 		if (contract.eth === 0) {
 			$('.progress-bar').css({ width: 0 });
+			$('#total-eth').text(0);
 		} else {
 			const midpoint = contract.divider / contract.eth;
 			$('#up-progress').css({ width: (1-midpoint)*100 + '%' });
