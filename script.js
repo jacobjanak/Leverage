@@ -1,5 +1,6 @@
 $(document).ready(() => {
 	let i, u;
+	let price = 3000;
 	const users = [];
 
 	const contract = {
@@ -7,7 +8,16 @@ $(document).ready(() => {
 		ethup: 0,
 		ethdown: 0,
 		divider: 0,
+		lastPrice: price,
 	};
+
+	$('button.price').on('click', () => {
+		const amount = parseFloat($('input.price').val());
+		if (isNaN(amount)) return;
+		price = amount;
+		updateDivider();
+		updateDOM();
+	})
 
 	$('button.buy-ethup').on('click', () => {
 		const amount = parseFloat($('input.buy-ethup').val());
@@ -15,6 +25,7 @@ $(document).ready(() => {
 		if (isNaN(amount)) return;
 		if (amount > users[u].eth) return;
 		$('input.buy-ethup').val('');
+		updateDivider();
 		if (contract.ethup === 0) {
 			contract.ethup++;
 			users[u].ethup++;
@@ -25,7 +36,7 @@ $(document).ready(() => {
 		}
 		contract.eth += amount;
 		users[u].eth -= amount;
-		update();
+		updateDOM();
 	})
 
 	$('button.sell-ethup').on('click', () => {
@@ -34,12 +45,13 @@ $(document).ready(() => {
 		if (isNaN(amount)) return;
 		if (amount > users[u].ethup) return;
 		$('input.sell-ethup').val('');
+		updateDivider();
 		const ratio = amount / contract.ethup;
 		users[u].eth += (contract.eth - contract.divider) * ratio;
 		contract.eth -= (contract.eth - contract.divider) * ratio;
 		users[u].ethup -= amount;
 		contract.ethup -= amount;
-		update();
+		updateDOM();
 	})
 
 	$('button.buy-ethdown').on('click', () => {
@@ -48,6 +60,7 @@ $(document).ready(() => {
 		if (isNaN(amount)) return;
 		if (amount > users[u].eth) return;
 		$('input.buy-ethdown').val('');
+		updateDivider();
 		if (contract.ethdown === 0) {
 			contract.ethdown++;
 			users[u].ethdown++;
@@ -59,7 +72,7 @@ $(document).ready(() => {
 		contract.eth += amount;
 		users[u].eth -= amount;
 		contract.divider += amount;
-		update();
+		updateDOM();
 	})
 
 	$('button.sell-ethdown').on('click', () => {
@@ -68,14 +81,34 @@ $(document).ready(() => {
 		if (isNaN(amount)) return;
 		if (amount > users[u].ethdown) return;
 		$('input.sell-ethdown').val('');
+		updateDivider();
 		const ratio = amount / contract.ethdown;
 		users[u].eth += contract.divider * ratio;
 		contract.eth -= contract.divider * ratio;
 		users[u].ethdown -= amount;
 		contract.ethdown -= amount;
 		contract.divider -= contract.divider * ratio;
-		update();
+		updateDOM();
 	})
+
+	const updateDivider = () => {
+		const constant = 1;
+		let sign, availableEth, ratio;
+		if (price === contract.lastPrice) return;
+		else if (price > contract.lastPrice) {
+			sign = -1;
+			availableEth = contract.divider;
+			ratio = 1 - contract.lastPrice / price;
+		}
+		else if (price < contract.lastPrice) {
+			sign = 1;
+			availableEth = contract.eth - contract.divider;
+			ratio = 1 - price / contract.lastPrice;
+		}
+		contract.divider += sign * availableEth * ratio * constant;
+		contract.lastPrice = price;
+		console.log(contract)
+	};
 
 	const User = (name, eth) => {
 		return {
@@ -86,14 +119,13 @@ $(document).ready(() => {
 		};
 	};
 
-	users.push(User("Joey", 5));
-	users.push(User("Monica", 10));
-	users.push(User("Chandler", 0.25));
-	users.push(User("Rachel", 0.5));
+	users.push(User('Elon Musk', 1000));
+	users.push(User('Oprah', 100));
+	users.push(User('', 10));
+	users.push(User('Average Joe', 1));
 
-	const update = () => {
-
-		// progress bar
+	const updateDOM = () => {
+		$('input.price').val(price);
 		if (contract.eth === 0) {
 			$('.progress-bar').css({ width: 0 });
 			$('#total-eth').text(0);
@@ -103,8 +135,6 @@ $(document).ready(() => {
 			$('#down-progress').css({ width: midpoint*100 + '%' });
 			$('#total-eth').text(contract.eth);
 		}
-
-		// active user
 		$('.user-container').each((i, el) => {
 			if (i === u) {
 				$(el).children('.data-container').find('.eth-amount').text(users[i].eth);
@@ -112,7 +142,7 @@ $(document).ready(() => {
 				$(el).children('.data-container').find('.ethdown-amount').text(users[i].ethdown);
 			}
 		})
-	}; update();
+	}; updateDOM();
 
 	const handleIconClick = function() {
 		const index = parseInt($(this).attr('data-index'));

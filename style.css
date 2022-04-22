@@ -7,10 +7,12 @@ body {
 #page {
 	margin: 0 auto;
 	width: 480px;
+	max-width: 100%;
 	background-color: white;
 }
 
-.exchange.input-group > button {
+#exchange > .input-group > button,
+#price > .input-group > button {
 	width: 50%;
 }
 
@@ -26,4 +28,8 @@ body {
 
 .data > span {
 	min-width: 32px;
+}
+
+svg:hover {
+	cursor: pointer;
 }
