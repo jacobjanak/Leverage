@@ -5,15 +5,31 @@ body {
 }
 
 #page {
-	margin: 0 auto;
 	width: 480px;
 	max-width: 100%;
 	background-color: white;
 }
+@media (max-width: 575.98px) {
+	#page {
+		margin-top: 0px !important;
+		padding-left: 0px !important;
+		padding-right: 0px !important;
+	}
+}
 
 #exchange > .input-group > button,
 #price > .input-group > button {
-	width: 50%;
+	width: 80px;
+}
+@media (min-width: 576px) {
+	#exchange > .input-group > button,
+	#price > .input-group > button {
+		width: 120px;
+	}
+}
+
+.small-line-height {
+	line-height: 1em !important;
 }
 
 .name {

@@ -18,34 +18,38 @@
 				</div>
 			</div>
 
-			<div id="price" class="container mt-4">
+			<div id="price" class="container mt-3">
+				<label for="price-input">Set ETH Price</label>
 				<div class="input-group mb-2">
-			    <input type="number" class="price form-control" min="0" value="3000">
-			    <button class="price btn btn-outline-primary" type="button">Set ETH Price</button>
+			    <input type="number" id="price-input" class="price form-control" min="0" value="3000">
+			    <button class="price btn btn-outline-primary" type="button">Submit</button>
 			  </div>
 			</div>
 
-	    <div id="exchange" class="container mt-4">
+	    <div id="exchange" class="container mt-3">
+	    	<label>ETHUP_LP Tokens</label>
 			  <div class="input-group mb-2">
 			    <input type="number" class="buy-ethup form-control" min="0" placeholder="ETH Amount">
-			    <button class="buy-ethup btn btn-success" type="button">Buy ETHUP_LP</button>
+			    <button class="buy-ethup btn btn-success" type="button">Buy</button>
 			  </div>
-			  <div class="input-group mb-4">
+			  <div class="input-group mb-3">
 			    <input type="number" class="sell-ethup form-control" min="0" placeholder="ETHUP_LP Amount">
-			    <button class="sell-ethup btn btn-outline-success" type="button">Sell ETHUP_LP</button>
+			    <button class="sell-ethup btn btn-outline-success" type="button">Sell</button>
 			  </div>
+			  <label>ETHDOWN_LP Tokens</label>
 			  <div class="input-group mb-2">
 			    <input type="number" class="buy-ethdown form-control" min="0" placeholder="ETH Amount">
-			    <button class="buy-ethdown btn btn-danger" type="button">Buy ETHDOWN_LP</button>
+			    <button class="buy-ethdown btn btn-danger" type="button">Buy</button>
 			  </div>
 			  <div class="input-group mb-2">
 			    <input type="number" class="sell-ethdown form-control" min="0" placeholder="ETHDOWN_LP Amount">
-			    <button class="sell-ethdown btn btn-outline-danger" type="button">Sell ETHDOWN_LP</button>
+			    <button class="sell-ethdown btn btn-outline-danger" type="button">Sell</button>
 			  </div>
 			</div>
 
 			<div id="users" class="container mt-3">
 				<div class="text-center">Users</div>
+				<div class="text-center small-line-height"><small>(Click icon to select user)</small></div>
 				<hr class="mt-1 mb-0" />
 				<div class="d-none">
 					<div id="user-template" class="d-flex mt-1">
@@ -57,7 +61,7 @@
 							  <path d="M3 14s-1 0-1-1 1-4 6-4 6 3 6 4-1 1-1 1H3zm5-6a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/>
 							</svg>
 						</div>
-						<div class="name-container d-flex">
+						<div class="name-container d-none d-sm-flex">
 							<span class="name align-self-center ml-4"></span>
 						</div>
 						<div class="data-container d-flex flex-grow-1 justify-content-center align-items-end flex-column">

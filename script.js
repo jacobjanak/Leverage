@@ -1,5 +1,5 @@
 $(document).ready(() => {
-	let i, u;
+	let i, u = 0;
 	let price = 3000;
 	const users = [];
 
@@ -16,6 +16,7 @@ $(document).ready(() => {
 		if (isNaN(amount)) return;
 		price = amount;
 		updateDivider();
+		fixDecimals();
 		updateDOM();
 	})
 
@@ -36,6 +37,7 @@ $(document).ready(() => {
 		}
 		contract.eth += amount;
 		users[u].eth -= amount;
+		fixDecimals();
 		updateDOM();
 	})
 
@@ -51,6 +53,7 @@ $(document).ready(() => {
 		contract.eth -= (contract.eth - contract.divider) * ratio;
 		users[u].ethup -= amount;
 		contract.ethup -= amount;
+		fixDecimals();
 		updateDOM();
 	})
 
@@ -72,6 +75,7 @@ $(document).ready(() => {
 		contract.eth += amount;
 		users[u].eth -= amount;
 		contract.divider += amount;
+		fixDecimals();
 		updateDOM();
 	})
 
@@ -88,6 +92,7 @@ $(document).ready(() => {
 		users[u].ethdown -= amount;
 		contract.ethdown -= amount;
 		contract.divider -= contract.divider * ratio;
+		fixDecimals();
 		updateDOM();
 	})
 
@@ -107,7 +112,20 @@ $(document).ready(() => {
 		}
 		contract.divider += sign * availableEth * ratio * constant;
 		contract.lastPrice = price;
-		console.log(contract)
+	};
+
+	const fixDecimals = () => {
+		price = parseFloat(price.toFixed(3));
+		contract.eth = parseFloat(contract.eth.toFixed(3));
+		contract.ethup = parseFloat(contract.ethup.toFixed(3));
+		contract.ethdown = parseFloat(contract.ethdown.toFixed(3));
+		contract.divider = parseFloat(contract.divider.toFixed(3));
+		contract.lastPrice = parseFloat(contract.lastPrice.toFixed(3));
+		for (i = 0; i < users.length; i++) {
+			users[i].eth = parseFloat(users[i].eth.toFixed(3));
+			users[i].ethup = parseFloat(users[i].ethup.toFixed(3));
+			users[i].ethdown = parseFloat(users[i].ethdown.toFixed(3));
+		}
 	};
 
 	const User = (name, eth) => {
@@ -120,8 +138,8 @@ $(document).ready(() => {
 	};
 
 	users.push(User('Elon Musk', 1000));
-	users.push(User('Oprah', 100));
-	users.push(User('', 10));
+	users.push(User('Tom Brady', 100));
+	users.push(User('Richie', 10));
 	users.push(User('Average Joe', 1));
 
 	const updateDOM = () => {
@@ -163,11 +181,12 @@ $(document).ready(() => {
 			$div.removeAttr('id').addClass('user-container');
 			$div.children('.icon-container').attr('data-index', i);
 			$div.children('.icon-container').on('click', handleIconClick);
-			$div.children('.icon-container').children('.active').hide();
 			$div.children('.name-container').children('.name').text(users[i].name);
 			$div.children('.data-container').find('.eth-amount').text(users[i].eth);
 			$div.children('.data-container').find('.ethup-amount').text(users[i].ethup);
 			$div.children('.data-container').find('.ethdown-amount').text(users[i].ethdown);
+			if (i === u) $div.children('.icon-container').children('.inactive').hide();
+			else $div.children('.icon-container').children('.active').hide();
 			$('#users').append($div);
 		}
 	}; addUsers();
