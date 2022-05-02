@@ -17,7 +17,7 @@ const c = {
 		ethdown: 0,
 	},
 	get: {
-		total: () => { return c.get.realethup + c.get.realethdown + c.reserve.total },
+		total: () => { return c.get.realethup() + c.get.realethdown() + c.reserve.total },
 		ethup: () => { return c.eth - c.divider },
 		ethdown: () => { return c.divider },
 		realethup: () => { return c.get.ethup() - c.reserve.ethup },
@@ -30,6 +30,7 @@ $('button.price').on('click', () => {
 	if (isNaN(amount)) return;
 	price = amount;
 	updateDivider();
+	updateReserve();
 	fixDecimals();
 	updateDOM();
 });
@@ -42,6 +43,7 @@ $('button.buy-ethup').on('click', () => {
 	$('input.buy-ethup').val('');
 	updateDivider();
 	amount /= 2;
+	// add ETHUP_LP
 	if (c.lp.ethup === 0) {
 		c.lp.ethup++;
 		users[u].ethup++;
@@ -50,6 +52,7 @@ $('button.buy-ethup').on('click', () => {
 		c.lp.ethup += amount * ratio;
 		users[u].ethup += amount * ratio;
 	}
+	// add RESERVE_LP
 	if (c.lp.reserve === 0) {
 		c.lp.reserve++;
 		users[u].reserve++;
@@ -58,6 +61,7 @@ $('button.buy-ethup').on('click', () => {
 		c.lp.reserve += amount * ratio;
 		users[u].reserve += amount * ratio;
 	}
+	// update eth amounts
 	c.eth += amount;
 	c.reserve.total += amount;
 	users[u].eth -= amount * 2;
@@ -73,11 +77,30 @@ $('button.sell-ethup').on('click', () => {
 	if (amount > users[u].ethup) return;
 	$('input.sell-ethup').val('');
 	updateDivider();
-	const ratio = amount / c.lp.ethup;
-	users[u].eth += (c.eth - c.divider) * ratio;
-	c.eth -= (c.eth - c.divider) * ratio;
-	users[u].ethup -= amount;
-	c.lp.ethup -= amount;
+	// cash out ETHUP_LP
+	let ethUpToEth = 0;
+	if (amount > 0) {
+		const ratioUpLP = amount / c.lp.ethup;
+		const ethUpToEth = c.get.realethup() * ratioUpLP;
+		users[u].ethup -= amount;
+		c.lp.ethup -= amount;
+		users[u].eth += ethUpToEth;
+		c.eth -= ethUpToEth;
+	}
+	// cash out RESERVE_LP
+	let amountReserveLP = users[u].reserve;
+	let reserveToEth = c.reserve.total * amountReserveLP / c.lp.reserve;
+	// maintain 1:1 eth to reserve ratio
+	const availableReserve = c.reserve.total - (c.get.realethup() + c.get.realethdown());
+	if (reserveToEth > availableReserve) {
+		amountReserveLP = availableReserve * c.lp.reserve / c.reserve.total;
+		reserveToEth = availableReserve
+	}
+	users[u].reserve -= amountReserveLP;
+	c.lp.reserve -= amountReserveLP;
+	users[u].eth += reserveToEth;
+	c.reserve.total -= reserveToEth;
+	updateReserve();
 	fixDecimals();
 	updateDOM();
 });
@@ -90,6 +113,7 @@ $('button.buy-ethdown').on('click', () => {
 	$('input.buy-ethdown').val('');
 	updateDivider();
 	amount /= 2;
+	// add ETHDOWN_LP
 	if (c.lp.ethdown === 0) {
 		c.lp.ethdown++;
 		users[u].ethdown++;
@@ -98,6 +122,7 @@ $('button.buy-ethdown').on('click', () => {
 		c.lp.ethdown += amount * ratio;
 		users[u].ethdown += amount * ratio;
 	}
+	// add RESERVE_LP
 	if (c.lp.reserve === 0) {
 		c.lp.reserve++;
 		users[u].reserve++;
@@ -106,6 +131,7 @@ $('button.buy-ethdown').on('click', () => {
 		c.lp.reserve += amount * ratio;
 		users[u].reserve += amount * ratio;
 	}
+	// update eth amounts
 	c.eth += amount;
 	c.reserve.total += amount;
 	users[u].eth -= amount * 2;
@@ -122,77 +148,75 @@ $('button.sell-ethdown').on('click', () => {
 	if (amount > users[u].ethdown) return;
 	$('input.sell-ethdown').val('');
 	updateDivider();
-	const ratio = amount / c.lp.ethdown;
-	users[u].eth += c.divider * ratio;
-	c.eth -= c.divider * ratio;
-	users[u].ethdown -= amount;
-	c.lp.ethdown -= amount;
-	c.divider -= c.divider * ratio;
+	// cash out ETHDOWN_LP
+	let ethDownToEth = 0;
+	if (amount > 0) {
+		const ratioDownLP = amount / c.lp.ethdown;
+		ethDownToEth = c.get.realethdown() * ratioDownLP;
+		users[u].ethdown -= amount;
+		c.lp.ethdown -= amount;
+		users[u].eth += ethDownToEth;
+		c.eth -= ethDownToEth;
+		c.divider -= ethDownToEth;
+	}
+	// cash out RESERVE_LP
+	let amountReserveLP = users[u].reserve;
+	let reserveToEth = c.reserve.total * amountReserveLP / c.lp.reserve;
+	// maintain 1:1 eth to reserve ratio
+	const availableReserve = c.reserve.total - (c.get.realethup() + c.get.realethdown());
+	if (reserveToEth > availableReserve) {
+		amountReserveLP = availableReserve * c.lp.reserve / c.reserve.total;
+		reserveToEth = availableReserve;
+	}
+	users[u].reserve -= amountReserveLP;
+	c.lp.reserve -= amountReserveLP;
+	users[u].eth += reserveToEth;
+	c.reserve.total -= reserveToEth;
+	updateReserve();
 	fixDecimals();
 	updateDOM();
 });
 
 const updateDivider = () => {
-	const constant = 1;
-	let sign, availableEth, ratio;
+	const k = 1/4;
 	if (price === c.lastPrice) return;
 	else if (price > c.lastPrice) {
-		sign = -1;
-		availableEth = c.divider;
-		ratio = 1 - c.lastPrice / price;
+		c.divider -= c.get.total()/2 * Math.log2(price/c.lastPrice) * k;
 	}
 	else if (price < c.lastPrice) {
-		sign = 1;
-		availableEth = c.eth - c.divider;
-		ratio = 1 - price / c.lastPrice;
+		c.divider += c.get.total()/2 * Math.log2(c.lastPrice/price) * k;
 	}
-	c.divider += sign * availableEth * ratio * constant;
-	c.lastPrice = price;
+	c.lastPrice = price;	
 };
 
 const updateReserve = () => {
+	// move all eth back to reserve
+	c.eth -= c.reserve.ethup + c.reserve.ethdown;
+	c.divider -= c.reserve.ethdown;
+	c.reserve.ethup = 0;
+	c.reserve.ethdown = 0;
+	// move eth from reserve into main pool as necessary
 	let diff = c.get.realethup() - c.get.realethdown();
 	if (diff > 0) {
-		if (c.reserve.ethup !== 0) {
-			c.eth -= c.reserve.ethup;
-			c.reserve.ethup = 0;
-		}
-		diff -= c.reserve.ethdown;
 		c.eth += diff;
 		c.divider += diff;
 		c.reserve.ethdown += diff;
 	}
 	else if (diff < 0) {
 		diff *= -1;
-		if (c.reserve.ethdown !== 0) {
-			c.eth -= c.reserve.ethdown;
-			c.divider -= c.reserve.ethdown;
-			c.reserve.ethdown = 0;
-		}
-		diff -= c.reserve.ethup;
 		c.eth += diff;
 		c.reserve.ethup += diff;
-	} else {
-		if (c.reserve.ethup !== 0) {
-			c.eth -= c.reserve.ethup;
-			c.reserve.ethup = 0;
-		}
-		if (c.reserve.ethdown !== 0) {
-			c.eth -= c.reserve.ethdown;
-			c.divider -= c.reserve.ethdown;
-			c.reserve.ethdown = 0;
-		}
 	}
 };
 
 const fixDecimals = () => {
 	price = parseFloat(price.toFixed(3));
+	c.lastPrice = parseFloat(c.lastPrice.toFixed(3));
 	c.eth = parseFloat(c.eth.toFixed(3));
+	c.divider = parseFloat(c.divider.toFixed(3));
 	c.lp.reserve = parseFloat(c.lp.reserve.toFixed(3));
 	c.lp.ethup = parseFloat(c.lp.ethup.toFixed(3));
 	c.lp.ethdown = parseFloat(c.lp.ethdown.toFixed(3));
-	c.divider = parseFloat(c.divider.toFixed(3));
-	c.lastPrice = parseFloat(c.lastPrice.toFixed(3));
 	c.reserve.total = parseFloat(c.reserve.total.toFixed(3));
 	c.reserve.ethup = parseFloat(c.reserve.ethup.toFixed(3));
 	c.reserve.ethdown = parseFloat(c.reserve.ethdown.toFixed(3));
@@ -200,6 +224,7 @@ const fixDecimals = () => {
 		users[i].eth = parseFloat(users[i].eth.toFixed(3));
 		users[i].ethup = parseFloat(users[i].ethup.toFixed(3));
 		users[i].ethdown = parseFloat(users[i].ethdown.toFixed(3));
+		users[i].reserve = parseFloat(users[i].reserve.toFixed(3));
 	}
 };
 
@@ -221,7 +246,7 @@ users.push(User('Average Joe', 1));
 const updateDOM = () => {
 	$('input.price').val(price);
 	$('#total-eth').text(c.eth);
-	$('#reserve-eth').text(c.reserve.total - c.reserve.ethup - c.reserve.ethdown);
+	$('#reserve-eth').text((c.reserve.total-c.reserve.ethup-c.reserve.ethdown).toFixed(3));
 	if (c.eth === 0) {
 		$('.progress-bar').css({ width: 0 });
 	} else {
@@ -284,6 +309,7 @@ $('#test').on('click', () => {
 			price -= 4
 		}
 		updateDivider();
+		updateReserve();
 		// fixDecimals();
 	}
 	fixDecimals();
