@@ -178,15 +178,13 @@ $('button.sell-ethdown').on('click', () => {
 });
 
 const updateDivider = () => {
-	const k = 1/4;
 	if (price === c.lastPrice) return;
-	else if (price > c.lastPrice) {
-		c.divider -= c.get.total()/2 * Math.log2(price/c.lastPrice) * k;
-	}
-	else if (price < c.lastPrice) {
-		c.divider += c.get.total()/2 * Math.log2(c.lastPrice/price) * k;
-	}
-	c.lastPrice = price;	
+	const k = 1;
+	const change = c.get.total()/4 * (price-c.lastPrice)/(price+c.lastPrice) * k;
+	c.divider -= change;
+	c.reserve.ethup *= (c.divider+change)/c.divider;
+	c.reserve.ethdown *= c.divider/(c.divider+change);
+	c.lastPrice = price;
 };
 
 const updateReserve = () => {
@@ -238,10 +236,9 @@ const User = (name, eth) => {
 	};
 };
 
-users.push(User('Elon Musk', 1000));
-users.push(User('Tom Brady', 100));
-users.push(User('Richie', 10));
-users.push(User('Average Joe', 1));
+users.push(User('Alice', 100));
+users.push(User('Bob', 100));
+users.push(User('Charlie', 1));
 
 const updateDOM = () => {
 	$('input.price').val(price);
