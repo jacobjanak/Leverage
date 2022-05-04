@@ -112,11 +112,14 @@ const updateDivider = () => {
 	}
 	else if (c.divider <= 0) {
 		c.divider = 0;
+		c.ethdown = 0;
 		for (i = 0; i < users.length; i++) {
 			users[i].ethdown = 0;
 		}
 	}
 };
+
+// Rest of code is just for testing purposes
 
 const fixDecimals = () => {
 	price = parseFloat(price.toFixed(3));

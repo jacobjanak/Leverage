@@ -1,13 +1,22 @@
+html { 
+  background: url('background.jpeg') no-repeat center center fixed; 
+  -webkit-background-size: cover;
+  -moz-background-size: cover;
+  -o-background-size: cover;
+  background-size: cover;
+}
+
 body {
 	margin: 0;
 	padding: 0;
-	background-color: grey;
+	background-color: transparent;
 }
 
 #page {
 	width: 480px;
 	max-width: 100%;
 	background-color: white;
+	border-radius: 8px;
 }
 @media (max-width: 575.98px) {
 	#page {

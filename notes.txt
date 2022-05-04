@@ -1,0 +1,4 @@
+liquidations should break the code flow
+fee structure
+mobile friendly
+move user template stuff out of js
