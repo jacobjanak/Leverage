@@ -2,11 +2,17 @@ let i, u = 0;
 let price = 3000;
 const users = [];
 
+// fees
+let isFeeOn = true;
+let feePoint = 0.2;
+let baseFee = 0.001;
+
 // contract attributes
 const c = {
 	lastPrice: price,
 	eth: 0,
 	divider: 0,
+	fees: 0,
 	ethup: 0, 	// LP tokens
 	ethdown: 0, // LP tokens
 };
@@ -21,12 +27,36 @@ $('button.price').on('click', () => {
 })
 
 $('button.buy-ethup').on('click', () => {
-	const amount = parseFloat($('input.buy-ethup').val());
+	let amount = parseFloat($('input.buy-ethup').val());
 	if (u == null) return;
 	if (isNaN(amount)) return;
 	if (amount > users[u].eth) return;
 	$('input.buy-ethup').val('');
 	updateDivider();
+	let fees = 0;
+	if (isFeeOn) {
+		const baseFee = getBaseFee(amount);
+		fees += baseFee;
+		amount -= baseFee;
+		if (c.divider !== c.eth && c.divider !== 0) {
+			const ethRatio = (1 - feePoint) / feePoint;
+			const feeStart = c.divider * ethRatio;
+			if (c.eth - c.divider + amount > feeStart) {
+				let surplus = 0;
+				let x0 = 0;
+				if (c.eth - c.divider > feeStart) {
+					surplus = amount;
+					x0 = (c.eth-c.divider)/c.eth - (1-feePoint);
+				}
+				else surplus = amount - (feeStart - c.divider);
+				const x1 = (c.eth+surplus-c.divider)/(c.eth+surplus) - (1-feePoint);
+				const stabilityFee = surplus * (getStabilityFee(x1)+getStabilityFee(x0))/2;
+				fees += stabilityFee;
+				amount -= stabilityFee;
+			}
+		}
+		c.fees += fees;
+	}
 	if (c.ethup === 0) {
 		c.ethup++;
 		users[u].ethup++;
@@ -36,7 +66,7 @@ $('button.buy-ethup').on('click', () => {
 		users[u].ethup += amount * ratio;
 	}
 	c.eth += amount;
-	users[u].eth -= amount;
+	users[u].eth -= amount + fees;
 	fixDecimals();
 	updateDOM();
 })
@@ -58,12 +88,31 @@ $('button.sell-ethup').on('click', () => {
 })
 
 $('button.buy-ethdown').on('click', () => {
-	const amount = parseFloat($('input.buy-ethdown').val());
+	let amount = parseFloat($('input.buy-ethdown').val());
 	if (u == null) return;
 	if (isNaN(amount)) return;
 	if (amount > users[u].eth) return;
 	$('input.buy-ethdown').val('');
 	updateDivider();
+	let fees = 0;
+	if (isFeeOn) {
+		const baseFee = getBaseFee(amount);
+		fees += baseFee;
+		amount -= baseFee;
+		if (c.divider !== c.eth && c.divider !== 0) {
+
+
+
+
+			let poolRatio = (c.divider+amount)/(c.eth+amount)-(1-feePoint);
+			if (poolRatio > 0) {
+				const stabilityFee = amount * getStabilityFee(poolRatio);
+				fees += stabilityFee;
+				amount -= stabilityFee;
+			}
+		}
+		c.fees += fees;
+	}
 	if (c.ethdown === 0) {
 		c.ethdown++;
 		users[u].ethdown++;
@@ -73,7 +122,7 @@ $('button.buy-ethdown').on('click', () => {
 		users[u].ethdown += amount * ratio;
 	}
 	c.eth += amount;
-	users[u].eth -= amount;
+	users[u].eth -= amount + fees;
 	c.divider += amount;
 	fixDecimals();
 	updateDOM();
@@ -119,10 +168,29 @@ const updateDivider = () => {
 	}
 };
 
+/*
+	There is always a base fee with any deposit/withdrawal.
+	If the smaller side of the pool is < feePoint, we charge
+	additional fees for deposits/withdrawals that increase
+	the imbalance. We also use fee() to reduce fees for any
+	deposits/withdrawals that reduce the imbalance.
+
+	Domain: 0 <= x <= feePoint
+	Range: 	0 <= y <= 1
+*/
+const getStabilityFee = x => {
+	return 1/(1+(x/(feePoint-x))**-3);
+}
+
+const getBaseFee = eth => {
+	return eth * baseFee;
+}
+
 // Rest of code is just for testing purposes
 
 const fixDecimals = () => {
 	price = parseFloat(price.toFixed(3));
+	c.fees = parseFloat(c.fees.toFixed(3));
 	c.eth = parseFloat(c.eth.toFixed(3));
 	c.ethup = parseFloat(c.ethup.toFixed(3));
 	c.ethdown = parseFloat(c.ethdown.toFixed(3));
@@ -141,6 +209,7 @@ const User = (name, eth) => {
 		eth: eth,
 		ethup: 0,
 		ethdown: 0,
+		feesPaid: 0,
 	};
 };
 
@@ -150,6 +219,7 @@ users.push(User('Charlie', 1));
 
 const updateDOM = () => {
 	$('input.price').val(price);
+	$('#fees').text(c.fees);
 	if (c.eth === 0) {
 		$('.progress-bar').css({ width: 0 });
 		$('#total-eth').text(0);
