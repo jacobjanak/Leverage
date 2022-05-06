@@ -52,12 +52,13 @@ $('button.sell-ethup').on('click', () => {
 	if (amount > users[u].ethup) return;
 	$('input.sell-ethup').val('');
 	updateDivider();
-	if (c.eth !== c.divider && c.divider !== 0) {
-		if (c.divider/(c.eth-amount-c.divider) > maxRatio) return;
-	}
 	const ratio = amount / c.ethup;
-	users[u].eth += (c.eth - c.divider) * ratio;
-	c.eth -= (c.eth - c.divider) * ratio;
+	const ethAmount = (c.eth - c.divider) * ratio;
+	if (c.eth !== c.divider && c.divider !== 0) {
+		if (c.divider/(c.eth-ethAmount-c.divider) > maxRatio) return;
+	}
+	users[u].eth += ethAmount;
+	c.eth -= ethAmount;
 	users[u].ethup -= amount;
 	c.ethup -= amount;
 	fixDecimals();
@@ -96,12 +97,13 @@ $('button.sell-ethdown').on('click', () => {
 	if (amount > users[u].ethdown) return;
 	$('input.sell-ethdown').val('');
 	updateDivider();
-	if (c.eth !== c.divider && c.divider !== 0) {
-		if ((c.eth-c.divider)/(c.divider-amount) > maxRatio) return;
-	}
 	const ratio = amount / c.ethdown;
-	users[u].eth += c.divider * ratio;
-	c.eth -= c.divider * ratio;
+	const ethAmount = c.divider * ratio;
+	if (c.eth !== c.divider && c.divider !== 0) {
+		if ((c.eth-c.divider)/(c.divider-ethAmount) > maxRatio) return;
+	}
+	users[u].eth += ethAmount;
+	c.eth -= ethAmount;
 	users[u].ethdown -= amount;
 	c.ethdown -= amount;
 	c.divider -= c.divider * ratio;
