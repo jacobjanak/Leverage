@@ -22,7 +22,7 @@ contract Leverage {
     mapping (address => int128) private bearBalances;
 
     // reject deposits/withdrawals that cause pool exceed this ratio
-    uint constant public MAX_RATIO = 4;
+    int128 public MAX_RATIO;
 
     // oracle for ETH/USD price on Kovan network via ChainLink
     AggregatorV3Interface internal priceFeed;
@@ -30,13 +30,8 @@ contract Leverage {
     constructor() {
         owner = msg.sender;
         priceFeed = AggregatorV3Interface(0x9326BFA02ADD2366b30bacB125260Af641031331);
-
-        // initialize all numeric values with zero 64x64
-        uint zero = 0;
-        t = Math.fromUInt(zero);
-        d = Math.fromUInt(zero);
-        bullTotal = Math.fromUInt(zero);
-        bearTotal = Math.fromUInt(zero);
+        uint four = 4;
+        MAX_RATIO = Math.fromUInt(four);
     }
 
     // view functions
@@ -70,12 +65,12 @@ contract Leverage {
         // updateDivider()
 
         // prevent transactions that lead to big imbalance
-        if (t != d && Math.toInt(d) != 0) {
-            require(Math.toUInt(Math.sub(Math.add(t, a), d)) <= MAX_RATIO * Math.toUInt(d));
+        if (t != d && d != 0) {
+            require(Math.sub(Math.add(t, a), d) <= Math.mul(MAX_RATIO, d));
         }
         
         // update lp tokens
-        if (Math.toUInt(bullTotal) == 0) {
+        if (bullTotal == 0) {
             uint one = 1;
             bullTotal = Math.fromUInt(one);
             bullBalances[msg.sender] = Math.fromUInt(one);
@@ -97,13 +92,12 @@ contract Leverage {
         // updateDivider()
 
         // prevent transactions that lead to big imbalance
-        // NOTE: using math.toUInt is probably bad
-        if (t != d && Math.toInt(d) != 0) {
-            require(Math.toUInt(Math.add(d, a)) <= MAX_RATIO * Math.toUInt(Math.sub(t, d)));
+        if (t != d && d != 0) {
+            require(Math.add(d, a) <= Math.mul(MAX_RATIO, Math.sub(t, d)));
         }
 
         // update lp tokens
-        if (Math.toUInt(bearTotal) == 0) {
+        if (bearTotal == 0) {
             uint one = 1;
             bearTotal = Math.fromUInt(one);
             bearBalances[msg.sender] = Math.fromUInt(one);
@@ -123,7 +117,7 @@ contract Leverage {
     function sellBull(uint numerator, uint denominator) public {
         require(numerator > 0 && denominator > 0);
         require(numerator <= denominator);
-        require(Math.toUInt(bullBalances[msg.sender]) > 0); // balances[sender] != zero
+        require(bullBalances[msg.sender] > 0);
 
         // updateDivider()
 
@@ -132,11 +126,8 @@ contract Leverage {
         int128 e = Math.mul(Math.sub(t, d), Math.div(l, bullTotal));
 
         // prevent transactions that lead to big imbalance
-        // NOTE: using math.toUInt is probably bad
-        if (t != d && Math.toInt(d) != 0) {
-            if (Math.toUInt(Math.sub(Math.sub(t, e), d)) != 0) { // NOTE: replace with real zero
-                require(Math.toUInt(Math.div(d, Math.sub(Math.sub(t, e), d))) < MAX_RATIO);
-            }
+        if (t != d && d != 0 && Math.sub(Math.sub(t, e), d) != 0) {
+            require(d < Math.mul(MAX_RATIO, Math.sub(Math.sub(t, e), d)));
         }
 
         // update lp tokens
@@ -153,7 +144,7 @@ contract Leverage {
     function sellBear(uint numerator, uint denominator) public {
         require(numerator > 0 && denominator > 0);
         require(numerator <= denominator);
-        require(Math.toUInt(bearBalances[msg.sender]) > 0); // balances[sender] != zero
+        require(bearBalances[msg.sender] > 0);
 
         // updateDivider()
 
@@ -162,11 +153,8 @@ contract Leverage {
         int128 e = Math.mul(d, Math.div(l, bearTotal));
 
         // prevent transactions that lead to big imbalance
-        // NOTE: using math.toUInt is probably bad
-        if (t != d && Math.toInt(d) != 0) {
-            if (Math.toUInt(Math.sub(d, e)) != 0) { // NOTE: replace with real zero
-                require(Math.toUInt(Math.div(Math.sub(t, d), Math.sub(d, e))) < MAX_RATIO);
-            }
+        if (t != d && d != 0 && Math.sub(d, e) != 0) {
+            require(Math.sub(t, d) < Math.mul(MAX_RATIO, Math.sub(d, e)));
         }
 
         // update lp tokens
