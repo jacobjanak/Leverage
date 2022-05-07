@@ -62,6 +62,7 @@ contract Leverage {
     //     lastPrice = price;
     // }
 
+    // deposit ETH and recieve bull lp tokens
     function buyBull() public payable {
         require(msg.value > 0);
         int128 a = Math.fromUInt(msg.value);
@@ -88,6 +89,7 @@ contract Leverage {
         t = Math.fromUInt(address(this).balance);
     }
 
+    // deposit ETH and recieve bear lp tokens
     function buyBear() public payable {
         require(msg.value > 0);
         int128 a = Math.fromUInt(msg.value);
@@ -95,6 +97,7 @@ contract Leverage {
         // updateDivider()
 
         // prevent transactions that lead to big imbalance
+        // NOTE: using math.toUInt is probably bad
         if (t != d && Math.toInt(d) != 0) {
             require(Math.toUInt(Math.add(d, a)) <= MAX_RATIO * Math.toUInt(Math.sub(t, d)));
         }
@@ -115,7 +118,70 @@ contract Leverage {
         t = Math.fromUInt(address(this).balance);
     }
 
-    // function sellBull
-    // function sellBear
+    // sell bull lp tokens and recieve ETH
+    // numerator / denominator = fraction of bull LP to sell
+    function sellBull(uint numerator, uint denominator) public {
+        require(numerator > 0 && denominator > 0);
+        require(numerator <= denominator);
+        require(Math.toUInt(bullBalances[msg.sender]) > 0); // balances[sender] != zero
+
+        // updateDivider()
+
+        // l = lp amount to redeem, e = eth amount to recieve
+        int128 l = Math.mul(bullBalances[msg.sender], Math.div(Math.fromUInt(numerator), Math.fromUInt(denominator)));
+        int128 e = Math.mul(Math.sub(t, d), Math.div(l, bullTotal));
+
+        // prevent transactions that lead to big imbalance
+        // NOTE: using math.toUInt is probably bad
+        if (t != d && Math.toInt(d) != 0) {
+            if (Math.toUInt(Math.sub(Math.sub(t, e), d)) != 0) { // NOTE: replace with real zero
+                require(Math.toUInt(Math.div(d, Math.sub(Math.sub(t, e), d))) < MAX_RATIO);
+            }
+        }
+
+        // update lp tokens
+        bullBalances[msg.sender] = Math.sub(bullBalances[msg.sender], l);
+        bullTotal = Math.sub(bullTotal, l);
+
+        // transfer eth
+        payable(msg.sender).transfer(Math.toUInt(e));
+        t = Math.fromUInt(address(this).balance);
+    }
+
+    // sell bear bull lp tokens and recieve ETH
+    // numerator / denominator = fraction of bear LP to sell
+    function sellBear(uint numerator, uint denominator) public {
+        require(numerator > 0 && denominator > 0);
+        require(numerator <= denominator);
+        require(Math.toUInt(bearBalances[msg.sender]) > 0); // balances[sender] != zero
+
+        // updateDivider()
+
+        // l = lp amount to redeem, e = eth amount to recieve
+        int128 l = Math.mul(bearBalances[msg.sender], Math.div(Math.fromUInt(numerator), Math.fromUInt(denominator)));
+        int128 e = Math.mul(d, Math.div(l, bearTotal));
+
+        // prevent transactions that lead to big imbalance
+        // NOTE: using math.toUInt is probably bad
+        if (t != d && Math.toInt(d) != 0) {
+            if (Math.toUInt(Math.sub(d, e)) != 0) { // NOTE: replace with real zero
+                require(Math.toUInt(Math.div(Math.sub(t, d), Math.sub(d, e))) < MAX_RATIO);
+            }
+        }
+
+        // update lp tokens
+        bearBalances[msg.sender] = Math.sub(bearBalances[msg.sender], l);
+        bearTotal = Math.sub(bearTotal, l);
+
+        // transfer eth
+        d = Math.sub(d, e);
+        payable(msg.sender).transfer(Math.toUInt(e));
+        t = Math.fromUInt(address(this).balance);
+    }
+
+    function emergency() public {
+        require(msg.sender == owner);
+        payable(msg.sender).transfer(address(this).balance);
+    }
 }
 
