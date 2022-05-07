@@ -9,17 +9,17 @@ import "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
 
 contract Leverage {
     address public owner;       // address of contract creator
-    int128 public lastPrice;    // last eth/usd price retrieved by oracle
-    int128 public t;            // total eth in contract
-    int128 public d;            // divider where 0 <= d <= t
+    int128 private lastPrice;    // last eth/usd price retrieved by oracle
+    int128 private t;            // total eth in contract
+    int128 private d;            // divider where 0 <= d <= t
 
     // total LP token counts
-    int128 public bullTotal;
-    int128 public bearTotal;
+    int128 private bullTotal;
+    int128 private bearTotal;
 
     // balances of LP tokens per user
-    mapping (address => int128) public bullBalances;
-    mapping (address => int128) public bearBalances;
+    mapping (address => int128) private bullBalances;
+    mapping (address => int128) private bearBalances;
 
     // reject deposits/withdrawals that cause pool exceed this ratio
     uint constant public MAX_RATIO = 4;
@@ -39,25 +39,15 @@ contract Leverage {
         bearTotal = Math.fromUInt(zero);
     }
 
-    function getEthTotal() public view returns (uint) {
-        return address(this).balance;
-    }
-
-    function getBullEth() public view returns (uint) {
-        return Math.toUInt(Math.sub(t, d));
-    }
-
-    function getBearEth() public view returns (uint) {
-        return Math.toUInt(d);
-    }
-
-    function getBalanceBull() public view returns (uint) {
-        return Math.toUInt(bullBalances[msg.sender]);
-    }
-
-    function getBalanceBear() public view returns (uint) {
-        return Math.toUInt(bearBalances[msg.sender]);
-    }
+    // view functions
+    function getEthTotal() public view returns (uint) { return address(this).balance; }
+    function getLastPrice() public view returns (uint) { return Math.toUInt(lastPrice); }
+    function getBullEth() public view returns (uint) { return Math.toUInt(Math.sub(t, d)); }
+    function getBearEth() public view returns (uint) { return Math.toUInt(d); }
+    function getBullTotal() public view returns (uint) { return Math.toUInt(bullTotal); }
+    function getBearTotal() public view returns (uint) { return Math.toUInt(bearTotal); }
+    function getBalanceBull() public view returns (uint) { return Math.toUInt(bullBalances[msg.sender]); }
+    function getBalanceBear() public view returns (uint) { return Math.toUInt(bearBalances[msg.sender]); }
 
     // get latest ETH/USD price from ChainLink oracle
     function getPrice() public view returns (int128) {
@@ -97,5 +87,35 @@ contract Leverage {
         // add eth to contract. I could do t = Math.add(t, a);
         t = Math.fromUInt(address(this).balance);
     }
+
+    function buyBear() public payable {
+        require(msg.value > 0);
+        int128 a = Math.fromUInt(msg.value);
+
+        // updateDivider()
+
+        // prevent transactions that lead to big imbalance
+        if (t != d && Math.toInt(d) != 0) {
+            require(Math.toUInt(Math.add(d, a)) <= MAX_RATIO * Math.toUInt(Math.sub(t, d)));
+        }
+
+        // update lp tokens
+        if (Math.toUInt(bearTotal) == 0) {
+            uint one = 1;
+            bearTotal = Math.fromUInt(one);
+            bearBalances[msg.sender] = Math.fromUInt(one);
+        } else {
+            int128 lpTokens = Math.div(Math.mul(a, bearTotal), d);
+            bearTotal = Math.add(bearTotal, lpTokens);
+            bearBalances[msg.sender] = Math.add(bearBalances[msg.sender], lpTokens);
+        }
+
+        // add eth to contract. I could do t = Math.add(t, a);
+        d = Math.add(d, a);
+        t = Math.fromUInt(address(this).balance);
+    }
+
+    // function sellBull
+    // function sellBear
 }
 
