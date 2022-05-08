@@ -9,17 +9,17 @@ import "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
 
 contract Leverage {
     address public owner;        // address of contract creator
-    int128 private lastPrice;    // last eth/usd price retrieved by oracle
-    int128 private t;            // total eth in contract
-    int128 private d;            // divider where 0 <= d <= t
+    int128 public lastPrice;    // last eth/usd price retrieved by oracle
+    int128 public t;            // total eth in contract
+    int128 public d;            // divider where 0 <= d <= t
 
     // total LP token counts
-    int128 private bullTotal;
-    int128 private bearTotal;
+    int128 public bullTotal;
+    int128 public bearTotal;
 
     // balances of LP tokens per user
-    mapping (uint => mapping(address => int128)) private bullBalances;
-    mapping (uint => mapping(address => int128)) private bearBalances;
+    mapping (uint => mapping(address => int128)) public bullBalances;
+    mapping (uint => mapping(address => int128)) public bearBalances;
     uint bullx = 0; // liquidates bulls when incremented
     uint bearx = 0; // liquidates bears when incremented
 
@@ -31,10 +31,13 @@ contract Leverage {
 
     constructor() {
         owner = msg.sender;
-        priceFeed = AggregatorV3Interface(0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419);
+        priceFeed = AggregatorV3Interface(0x9326BFA02ADD2366b30bacB125260Af641031331);
         uint four = 4;
         MAX_RATIO = Math.fromUInt(four);
-        lastPrice = getPrice();
+
+        uint i = 3000;
+        lastPrice = Math.fromUInt(i);
+        // lastPrice = getPrice();
     }
 
     // view functions
@@ -57,30 +60,32 @@ contract Leverage {
         if (d != t && d != 0) {
 
             // get price from oracle
-            int128 price = getPrice();
-            if (price != lastPrice) {
+            // int128 price = getPrice();
+            // require(price != lastPrice);
 
-                // calculate amount divider will be moved
-                // Using MAX_RATIO only because it happens to be 4
-                int128 move = Math.mul(Math.div(t, MAX_RATIO), Math.log_2(Math.div(price, lastPrice)));
-                lastPrice = price;
+            uint i = 250;
+            int128 price = Math.add(lastPrice, Math.fromUInt(i));
 
-                // bear liquidations
-                if (d < move) {
-                    d = 0;
-                    bearTotal = 0;
-                    bearx++;
-                } else {
+            // calculate amount divider will be moved
+            // Using MAX_RATIO only because it happens to be 4
+            int128 move = Math.mul(Math.div(t, MAX_RATIO), Math.log_2(Math.div(price, lastPrice)));
+            lastPrice = price;
 
-                    // adjust divider
-                    d = Math.sub(d, move);
+            // bear liquidations
+            if (d < move) {
+                d = 0;
+                bearTotal = 0;
+                bearx++;
+            } else {
 
-                    // bull liquidations
-                    if (d > t) {
-                        d = t;
-                        bullTotal = 0;
-                        bullx++;
-                    }
+                // adjust divider
+                d = Math.sub(d, move);
+
+                // bull liquidations
+                if (d > t) {
+                    d = t;
+                    bullTotal = 0;
+                    bullx++;
                 }
             }
         }       
