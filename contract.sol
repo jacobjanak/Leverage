@@ -8,7 +8,7 @@ import "./abdk.sol";
 import "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
 
 contract Leverage {
-    address public owner;       // address of contract creator
+    address public owner;        // address of contract creator
     int128 private lastPrice;    // last eth/usd price retrieved by oracle
     int128 private t;            // total eth in contract
     int128 private d;            // divider where 0 <= d <= t
@@ -32,6 +32,7 @@ contract Leverage {
         priceFeed = AggregatorV3Interface(0x9326BFA02ADD2366b30bacB125260Af641031331);
         uint four = 4;
         MAX_RATIO = Math.fromUInt(four);
+        lastPrice = getPrice();
     }
 
     // view functions
@@ -50,12 +51,35 @@ contract Leverage {
         return Math.fromInt(price);
     }
 
-    // function updateDivider() public pure returns (int64) {
-    //     require(d != t && Math.toUInt(d) != 0);
-    //     int128 price = getPrice();
-    //     // require(price != lastPrice);
-    //     lastPrice = price;
-    // }
+    function updateDivider() public {
+        require(d != t && d != 0);
+
+        // get price from oracle
+        int128 price = getPrice();
+        require(price != lastPrice);
+
+        // calculate amount divider will be moved
+        // NOTE: Using MAX_RATIO only because it happens to be 4
+        int128 move = Math.mul(Math.div(t, MAX_RATIO), Math.log_2(Math.div(price, lastPrice)));
+
+        // bear liquidations
+        if (d < move) {
+            d = 0;
+            bearTotal = 0;
+            // loop over mapping
+        }
+
+        // update contract
+        d = Math.sub(d, move);
+        lastPrice = price;
+
+        // bull liquidations
+        if (d > t) {
+            d = t;
+            bullTotal = 0;
+            // loop over mapping
+        }
+    }
 
     // deposit ETH and recieve bull lp tokens
     function buyBull() public payable {
