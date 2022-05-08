@@ -1,0 +1,39 @@
+body {
+	padding-top: 8px;
+	background-color: #FFEA80;
+  	text-align: center;
+  	font-family: sans-serif;
+  	letter-spacing: 0.08em;
+}
+
+nav {
+	height: 54px;
+}
+
+.a-reset {
+  	color: inherit;
+  	text-decoration: inherit; /* No underline */
+}
+
+#circle {
+	display: inline-block;
+	margin-right: 1px;
+  	border-radius: 50%;
+  	width: 22px;
+  	height: 22px;
+  	background: #ff6239;
+  	transform: translateY(3px); /* Simple fix */ 
+}
+
+#wallet-display {
+	display: none; /* Hide this until user connects wallet. */
+	cursor: default;
+}
+
+#wallet-address {
+	text-transform: uppercase;
+}
+
+#dots {
+	letter-spacing: 0;
+}
